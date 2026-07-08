@@ -4,6 +4,7 @@ import { useProducts } from '../../app/context/ProductContext';
 import { useNavigate } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../../app/components/ui/card';
 import { Button } from '../../app/components/ui/button';
+import { X } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AddProductPage() {
@@ -22,8 +23,10 @@ export default function AddProductPage() {
     brand: '',
     price: '',
     originalPrice: '',
-    image: '',
+    imei: '',
     category: 'Smart Phone',
+    stock: '',
+    color: '',
     condition: '',
     description: '',
     display: '',
@@ -42,22 +45,52 @@ export default function AddProductPage() {
     noiseCancellation: '',
   });
 
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setImageFiles(Array.from(e.target.files));
+    }
+  };
+
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setVideoFile(e.target.files[0]);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeVideo = () => {
+    setVideoFile(null);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const imageStr = imageFiles.length > 0 ? URL.createObjectURL(imageFiles[0]) : 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400';
+    const imagesArr = imageFiles.map(file => URL.createObjectURL(file));
+    const videoStr = videoFile ? URL.createObjectURL(videoFile) : '';
+
     const newProduct = {
-      id: Date.now().toString(),
       name: formData.name,
-      brand: formData.brand,
-      price: Number(formData.price),
-      originalPrice: formData.originalPrice ? Number(formData.originalPrice) : undefined,
-      image: formData.image || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400',
-      category: formData.category,
-      rating: 0,
-      reviews: 0,
-      inStock: true,
-      condition: formData.condition as any || undefined,
       description: formData.description,
+      price: Number(formData.price),
+      originalPrice: formData.originalPrice ? Number(formData.originalPrice) : 0,
+      imei: formData.imei,
+      image: imageStr,
+      images: imagesArr,
+      video: videoStr,
+      brand: formData.brand,
+      category: formData.category,
+      stock: Number(formData.stock),
+      inStock: true,
+      condition: formData.condition,
+      storage: formData.storage,
+      color: formData.color,
       specifications: {
         display: formData.display || undefined,
         processor: formData.processor || undefined,
@@ -85,8 +118,10 @@ export default function AddProductPage() {
       brand: '',
       price: '',
       originalPrice: '',
-      image: '',
+      imei: '',
       category: 'Smart Phone',
+      stock: '',
+      color: '',
       condition: '',
       description: '',
       display: '',
@@ -104,6 +139,8 @@ export default function AddProductPage() {
       batteryLife: '',
       noiseCancellation: '',
     });
+    setImageFiles([]);
+    setVideoFile(null);
   };
 
   if (!user || (user.role !== 'admin' && user.role !== 'staff')) {
@@ -164,28 +201,35 @@ export default function AddProductPage() {
                   />
                 </div>
 
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-medium">Image URL</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">IMEI</label>
                   <input
-                    type="url"
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                    type="text"
+                    value={formData.imei}
+                    onChange={(e) => setFormData({ ...formData, imei: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://example.com/image.jpg"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Category *</label>
-                  <select
+                  <label className="text-sm font-medium">Stock *</label>
+                  <input
+                    type="number"
                     required
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    value={formData.stock}
+                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Smart Phone">Smart Phone</option>
-                    <option value="Accessories">Accessories</option>
-                  </select>
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Color</label>
+                  <input
+                    type="text"
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -201,6 +245,78 @@ export default function AddProductPage() {
                     <option value="Fair">Fair</option>
                   </select>
                 </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Image Upload</label>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer cursor-pointer text-gray-500"
+                  />
+                  {imageFiles.length > 0 && (
+                    <div className="mt-4 grid grid-cols-3 gap-4">
+                      {imageFiles.map((file, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border">
+                          <img 
+                            src={URL.createObjectURL(file)} 
+                            alt={`Preview ${idx + 1}`} 
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(idx)}
+                            className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-md hover:bg-gray-100"
+                          >
+                            <X className="w-4 h-4 text-gray-600" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Video Upload</label>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoChange}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer cursor-pointer text-gray-500"
+                  />
+                  {videoFile && (
+                    <div className="mt-4 relative rounded-lg overflow-hidden border bg-gray-50">
+                      <video 
+                        src={URL.createObjectURL(videoFile)} 
+                        controls 
+                        className="w-full max-h-60"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeVideo}
+                        className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md hover:bg-gray-100 z-10"
+                      >
+                        <X className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Category *</label>
+                  <select
+                    required
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Smart Phone">Smart Phone</option>
+                    <option value="Accessories">Accessories</option>
+                  </select>
+                </div>
+
+
 
                 <div className="space-y-2 md:col-span-2">
                   <label className="text-sm font-medium">Description *</label>
