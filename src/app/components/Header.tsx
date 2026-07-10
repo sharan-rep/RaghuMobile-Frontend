@@ -124,6 +124,9 @@ export function Header() {
                   <DropdownMenuItem asChild>
                     <Link to="/track-order" className="cursor-pointer">Order History</Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/wishlist" className="cursor-pointer">Wishlist</Link>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout} className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
                     Logout
@@ -211,6 +214,13 @@ export function Header() {
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Order History
+                      </Link>
+                      <Link
+                        to="/wishlist"
+                        className="flex items-center gap-3 p-3 rounded-xl font-medium text-gray-600 hover:bg-gray-50 transition-all"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Wishlist
                       </Link>
                       <button
                         onClick={() => {

@@ -1,17 +1,62 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../app/context/AuthContext';
-import { useProducts } from '../../app/context/ProductContext';
+
 import { useNavigate, Link } from 'react-router';
 import { Card, CardContent } from '../../app/components/ui/card';
 import { Badge } from '../../app/components/ui/badge';
 import { Button } from '../../app/components/ui/button';
-import { Package, Plus, Search, AlertTriangle, Edit2, Trash2, Star } from 'lucide-react';
+import { Package, Plus, Search, Edit2, Trash2, Star } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function ProductManagementPage() {
   const { user } = useAuth();
-  const { products } = useProducts();
+
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [backendProducts, setBackendProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const { listProducts } = await import('./Service/ProductApi');
+        const response = await listProducts();
+        if (response && response.data && Array.isArray(response.data.items)) {
+          setBackendProducts(response.data.items);
+        } else if (response && response.data && Array.isArray(response.data)) {
+          setBackendProducts(response.data);
+        } else if (Array.isArray(response)) {
+          setBackendProducts(response);
+        } else if (response && response.data && typeof response.data === 'string') {
+          try {
+            const parsed = JSON.parse(response.data);
+            setBackendProducts(Array.isArray(parsed) ? parsed : []);
+          } catch (e) {
+            setBackendProducts([]);
+          }
+        } else {
+          setBackendProducts([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
+    try {
+      const { deleteProduct } = await import('./Service/ProductApi');
+      await deleteProduct(id);
+      setBackendProducts(prev => prev.filter(p => p.id !== id));
+      toast.success('Product deleted successfully!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete product');
+    }
+  };
 
   useEffect(() => {
     if (!user || (user.role !== 'admin' && user.role !== 'staff')) {
@@ -21,34 +66,15 @@ export default function ProductManagementPage() {
 
   if (!user || (user.role !== 'admin' && user.role !== 'staff')) return null;
 
-  // Since stock isn't fully managed in current context, let's derive a mock stock for UI demonstration
-  // In a real app, product.stock would be used. If inStock is true, we'll assign random stock based on id for demo,
-  // or default to 15. If it's the specific products in the screenshot (One Plus Nord 5, etc.), we can mock the values.
-  const getMockStock = (id: string, inStock: boolean) => {
-    if (!inStock) return 0;
-    // Just a deterministic way to get a stock number for the UI, including a low stock one
-    const num = id.length % 20; 
-    return num === 0 ? 1 : num; 
-  };
-
-  const enhancedProducts = products.map(p => {
-    const stock = (p as any).stock !== undefined ? (p as any).stock : getMockStock(p.id, p.inStock);
-    return { ...p, stock, condition: (p as any).condition || 'Good' };
-  });
-
-  const filteredProducts = enhancedProducts.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.brand.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProducts = (Array.isArray(backendProducts) ? backendProducts : []).filter(p =>
+    p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.brand?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const lowStockProducts = enhancedProducts.filter(p => p.stock > 0 && p.stock <= 5);
-  const outOfStockProducts = enhancedProducts.filter(p => p.stock === 0);
-  const totalLowStock = lowStockProducts.length + outOfStockProducts.length;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-[1400px]">
-        
+
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div className="flex items-center gap-3">
@@ -58,10 +84,7 @@ export default function ProductManagementPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Manage Products</h1>
               <p className="text-sm text-gray-500 font-medium">
-                {products.length} products 
-                {totalLowStock > 0 && (
-                  <span className="text-red-500 ml-1">· {totalLowStock} low stock</span>
-                )}
+                {backendProducts.length} products
               </p>
             </div>
           </div>
@@ -73,15 +96,6 @@ export default function ProductManagementPage() {
           </Button>
         </div>
 
-        {/* Low Stock Alert */}
-        {totalLowStock > 0 && (
-          <div className="bg-red-50 border border-red-100 rounded-lg p-4 mb-6 flex items-center gap-3 text-red-600">
-            <AlertTriangle className="w-5 h-5" />
-            <p className="font-medium text-sm">
-              {totalLowStock} product{totalLowStock > 1 ? 's are' : ' is'} running low on stock
-            </p>
-          </div>
-        )}
 
         {/* Products Table Card */}
         <Card className="border-none shadow-sm rounded-xl overflow-hidden">
@@ -111,7 +125,7 @@ export default function ProductManagementPage() {
                     <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Condition</th>
                     <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Price</th>
                     <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Rating</th>
-                    <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Stock</th>
+
                     <th className="text-left p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -122,7 +136,8 @@ export default function ProductManagementPage() {
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center p-2 overflow-hidden flex-shrink-0 border border-gray-100">
                             <img
-                              src={product.image}
+                              src={product.image || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400'}
+                              onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400'; }}
                               alt={product.name}
                               className="w-full h-full object-contain mix-blend-multiply"
                             />
@@ -149,33 +164,24 @@ export default function ProductManagementPage() {
                           <span className="text-gray-400">({product.reviews})</span>
                         </div>
                       </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm font-semibold ${product.stock <= 5 ? 'text-red-600' : 'text-gray-900'}`}>
-                            {product.stock}
-                          </span>
-                          {product.stock <= 5 && (
-                            <AlertTriangle className="w-4 h-4 text-red-500" />
-                          )}
-                        </div>
-                      </td>
+
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <button className="text-blue-500 hover:text-blue-700 transition-colors" title="Edit">
+                          <Link to={`/admin/products/add?edit=${product.id}`} className="text-blue-500 hover:text-blue-700 transition-colors" title="Edit">
                             <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button className="text-red-500 hover:text-red-700 transition-colors" title="Delete">
+                          </Link>
+                          <button onClick={() => handleDelete(product.id)} className="text-red-500 hover:text-red-700 transition-colors" title="Delete">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
                     </tr>
                   ))}
-                  
+
                   {filteredProducts.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-gray-500">
-                        No products found matching "{searchTerm}"
+                      <td colSpan={6} className="p-8 text-center text-gray-500">
+                        {isLoading ? 'Loading products...' : `No products found matching "${searchTerm}"`}
                       </td>
                     </tr>
                   )}

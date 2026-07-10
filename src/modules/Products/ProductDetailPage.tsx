@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
-import { products } from '../../app/data/products';
+import { useProducts } from '../../app/context/ProductContext';
 import { Button } from '../../app/components/ui/button';
 import { Badge } from '../../app/components/ui/badge';
 import { Card, CardContent } from '../../app/components/ui/card';
@@ -17,6 +17,7 @@ import {
   ChevronRight,
   ShoppingCart,
   Heart,
+  ArrowLeft,
 } from 'lucide-react';
 import { useCart } from '../../app/context/CartContext';
 import { toast } from 'sonner';
@@ -24,9 +25,30 @@ import { toast } from 'sonner';
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { products, isLoading } = useProducts();
   const product = products.find(p => p.id === id);
-  const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || '');
-  const [selectedStorage, setSelectedStorage] = useState(product?.storage?.[0] || '');
+  
+  const productColors = product ? (Array.isArray(product.colors) ? product.colors : (product.color ? [product.color] : [])) : [];
+  const productStorageOptions = product ? (Array.isArray(product.storage) ? product.storage : (typeof product.storage === 'string' ? [product.storage] : (product.specifications?.storage ? [product.specifications.storage] : []))) : [];
+
+  const allMedia = product ? [
+    ...(product.image ? [{ type: 'image', url: product.image }] : []),
+    ...(Array.isArray(product.images) ? product.images.map((url: string) => ({ type: 'image', url })) : []),
+    ...(product.video ? [{ type: 'video', url: product.video }] : [])
+  ] : [];
+
+  const [selectedColor, setSelectedColor] = useState(productColors[0] || '');
+  const [selectedStorage, setSelectedStorage] = useState(productStorageOptions[0] || '');
+  const [activeMedia, setActiveMedia] = useState(allMedia[0]);
+
+  useEffect(() => {
+    if (product) {
+      if (!selectedColor && productColors.length > 0) setSelectedColor(productColors[0]);
+      if (!selectedStorage && productStorageOptions.length > 0) setSelectedStorage(productStorageOptions[0]);
+      if (!activeMedia && allMedia.length > 0) setActiveMedia(allMedia[0]);
+    }
+  }, [product, selectedColor, selectedStorage, activeMedia]);
+
   const { addToCart } = useCart();
 
   const handleAddToCart = () => {
@@ -47,6 +69,17 @@ export default function ProductDetailPage() {
     toast.success('Added to wishlist');
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold">Loading product...</h2>
+        </div>
+      </div>
+    );
+  }
+
   if (!product) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -60,28 +93,74 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumb */}
-        <div className="text-sm text-gray-600 mb-6">
-          <span className="hover:text-blue-600 cursor-pointer" onClick={() => navigate('/')}>Home</span>
-          <span className="mx-2">/</span>
-          <span className="hover:text-blue-600 cursor-pointer" onClick={() => navigate('/products')}>Products</span>
-          <span className="mx-2">/</span>
-          <span>{product.name}</span>
+      <div className="container mx-auto px-4 pt-24 pb-8">
+        {/* Breadcrumb and Back Button */}
+        <div className="flex items-center gap-4 mb-6">
+          <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="shrink-0 bg-white shadow-sm border-gray-200 hover:bg-gray-50">
+            <ArrowLeft className="w-4 h-4 mr-1.5" />
+            Back
+          </Button>
+          <div className="text-sm text-gray-600 font-medium flex flex-wrap items-center">
+            <span className="hover:text-blue-600 cursor-pointer transition-colors" onClick={() => navigate('/')}>Home</span>
+            <span className="mx-2 text-gray-400">/</span>
+            <span className="hover:text-blue-600 cursor-pointer transition-colors" onClick={() => navigate('/products')}>Products</span>
+            <span className="mx-2 text-gray-400">/</span>
+            <span className="text-gray-900">{product.name}</span>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 mb-12">
-          {/* Product Image */}
-          <div className="bg-white rounded-xl p-8">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-full h-auto max-h-[500px] object-contain"
-            />
+          {/* Product Media Gallery */}
+          <div className="bg-white rounded-xl p-6 flex flex-col gap-4">
+            {/* Main Media Display */}
+            <div className="w-full h-[400px] sm:h-[500px] flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden relative">
+              {activeMedia?.type === 'video' ? (
+                <video
+                  src={activeMedia.url}
+                  controls
+                  autoPlay
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <img
+                  src={activeMedia?.url || product.image}
+                  alt={product.name}
+                  className="w-full h-full object-contain"
+                />
+              )}
+            </div>
+
+            {/* Media Thumbnails */}
+            {allMedia.length > 1 && (
+              <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar mt-4">
+                {allMedia.map((media, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setActiveMedia(media)}
+                    className={`flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-all ${
+                      activeMedia?.url === media.url ? 'border-indigo-600 opacity-100' : 'border-transparent opacity-60 hover:opacity-100 bg-gray-100'
+                    }`}
+                  >
+                    {media.type === 'video' ? (
+                      <div className="w-full h-full bg-gray-200 flex items-center justify-center relative">
+                        <video src={media.url} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                          <div className="w-6 h-6 rounded-full bg-white/80 flex items-center justify-center pl-0.5">
+                            <svg className="w-3 h-3 text-gray-900" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <img src={media.url} alt={`${product.name} thumbnail ${index}`} className="w-full h-full object-cover" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Details */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Badge>{product.category}</Badge>
@@ -124,11 +203,11 @@ export default function ProductDetailPage() {
             <Separator />
 
             {/* Color Selection */}
-            {product.colors && product.colors.length > 0 && (
+            {productColors && productColors.length > 0 && (
               <div>
                 <h3 className="font-semibold mb-3">Color: {selectedColor}</h3>
                 <div className="flex gap-2">
-                  {product.colors.map(color => (
+                  {productColors.map(color => (
                     <Button
                       key={color}
                       variant={selectedColor === color ? 'default' : 'outline'}
@@ -143,11 +222,11 @@ export default function ProductDetailPage() {
             )}
 
             {/* Storage Selection */}
-            {product.storage && product.storage.length > 0 && (
+            {productStorageOptions && productStorageOptions.length > 0 && (
               <div>
                 <h3 className="font-semibold mb-3">Storage: {selectedStorage}</h3>
                 <div className="flex gap-2">
-                  {product.storage.map(storage => (
+                  {productStorageOptions.map(storage => (
                     <Button
                       key={storage}
                       variant={selectedStorage === storage ? 'default' : 'outline'}
@@ -165,18 +244,26 @@ export default function ProductDetailPage() {
 
             {/* Actions */}
             <div className="flex flex-col gap-3">
-              <Button size="lg" className="w-full" onClick={handleAddToCart}>
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                Add to Cart
-              </Button>
-              <div className="grid grid-cols-2 gap-3">
-                <Button size="lg" variant="secondary" onClick={handleAddToWishlist}>
-                  <Heart className="w-5 h-5 mr-2" />
+              <div className="flex gap-3">
+                <Button className="flex-1" variant="outline" onClick={handleAddToCart}>
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Add to Cart
+                </Button>
+                <Button className="flex-1 bg-slate-900 hover:bg-blue-600 text-white" onClick={() => {
+                  handleAddToCart();
+                  navigate('/cart');
+                }}>
+                  Buy Now
+                </Button>
+              </div>
+              <div className="flex gap-3">
+                <Button className="flex-1" variant="secondary" onClick={handleAddToWishlist}>
+                  <Heart className="w-4 h-4 mr-2" />
                   Wishlist
                 </Button>
-                <Button size="lg" variant="outline" asChild>
+                <Button className="flex-1" variant="outline" asChild>
                   <a href="tel:+919698237458">
-                    <Phone className="w-5 h-5 mr-2" />
+                    <Phone className="w-4 h-4 mr-2" />
                     Call Us
                   </a>
                 </Button>
@@ -313,19 +400,71 @@ export default function ProductDetailPage() {
               .map(relatedProduct => (
                 <Card
                   key={relatedProduct.id}
-                  className="group hover:shadow-xl transition-shadow cursor-pointer"
+                  className="group border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col h-full rounded-xl bg-white cursor-pointer"
                   onClick={() => navigate(`/products/${relatedProduct.id}`)}
                 >
-                  <CardContent className="p-4">
-                    <div className="relative mb-4 overflow-hidden rounded-lg bg-gray-100">
-                      <img
-                        src={relatedProduct.image}
-                        alt={relatedProduct.name}
-                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform"
-                      />
+                  <CardContent className="p-0 flex flex-col h-full relative">
+                    <div className="block relative bg-white p-6 pb-2">
+                      <div className="relative h-48 w-full flex items-center justify-center">
+                        <img
+                          src={relatedProduct.image}
+                          alt={relatedProduct.name}
+                          className="w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-300"
+                        />
+                      </div>
+                      <div className="absolute top-4 left-4 flex flex-col gap-2">
+                        {relatedProduct.originalPrice ? (
+                          <span className="bg-[#7b1717] text-white text-xs font-semibold px-2.5 py-1 rounded-sm shadow-sm">Sale</span>
+                        ) : (relatedProduct.condition === 'New' || relatedProduct.condition === 'Like New') ? (
+                          <span className="bg-[#1f874c] text-white text-xs font-semibold px-2.5 py-1 rounded-sm shadow-sm">New</span>
+                        ) : null}
+                      </div>
                     </div>
-                    <h3 className="font-semibold line-clamp-2 mb-2">{relatedProduct.name}</h3>
-                    <p className="text-xl font-bold">₹{relatedProduct.price.toLocaleString('en-IN')}</p>
+                    <div className="p-5 flex flex-col flex-grow">
+                      <div className="flex items-center gap-2 mb-2.5">
+                        <div className={`w-1.5 h-1.5 rounded-full ${relatedProduct.inStock ? 'bg-indigo-600' : 'bg-red-500'}`}></div>
+                        <span className="text-xs font-medium text-indigo-700">
+                          {relatedProduct.inStock ? `In stock ${relatedProduct.stock || 0} Items` : 'Out of Stock'}
+                        </span>
+                      </div>
+                      <h3 className="font-medium text-gray-900 line-clamp-2 text-base leading-snug mb-2 flex-grow">
+                        {relatedProduct.name}
+                      </h3>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[17px] font-bold text-gray-900">₹{relatedProduct.price.toLocaleString('en-IN')}</span>
+                        {relatedProduct.originalPrice && (
+                          <span className="text-sm text-gray-400 line-through font-medium">
+                            ₹{relatedProduct.originalPrice.toLocaleString('en-IN')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 mb-5 mt-auto">
+                        <div className="flex gap-0.5 text-indigo-900">
+                          {[...Array(5)].map((_, i) => (
+                            <Star 
+                              key={i} 
+                              className={`w-3.5 h-3.5 ${i < Math.round(relatedProduct.rating || 0) ? 'fill-indigo-900 text-indigo-900' : 'fill-gray-200 text-gray-200'}`} 
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs text-gray-500 ml-1 font-medium">({relatedProduct.reviews || 0})</span>
+                      </div>
+                      <Button
+                        className="w-full bg-[#1e1b4b] hover:bg-[#312e81] text-white rounded-md py-5 font-medium transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToCart({
+                            id: relatedProduct.id,
+                            name: relatedProduct.name,
+                            price: relatedProduct.price,
+                            image: relatedProduct.image,
+                          });
+                          toast.success('Added to cart');
+                        }}
+                      >
+                        Order Now
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}

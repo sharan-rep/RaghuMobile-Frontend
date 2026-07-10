@@ -29,6 +29,8 @@ export interface Product {
   };
   colors?: string[];
   storage?: string[];
+  images?: string[];
+  video?: string;
 }
 
 export const products: Product[] = [

@@ -246,8 +246,8 @@ export default function HomePage() {
                   </Link>
 
                   {/* Content Container */}
-                  <CardContent className="p-6 flex flex-col flex-grow bg-white">
-                    <div className="flex items-center gap-2 mb-3">
+                  <CardContent className="p-4 flex flex-col flex-grow bg-white">
+                    <div className="flex items-center gap-2 mb-2">
                       <div className="flex items-center">
                         <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
                         <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
@@ -265,9 +265,9 @@ export default function HomePage() {
                       </h3>
                     </Link>
                     
-                    <div className="mt-auto pt-4 flex items-end justify-between border-t border-slate-100">
+                    <div className="mt-auto pt-3 flex items-end justify-between border-t border-slate-100">
                       <div className="flex flex-col">
-                        <span className="text-xs text-slate-500 font-medium mb-1">Price</span>
+                        <span className="text-xs text-slate-500 font-medium mb-0.5">Price</span>
                         <div className="flex items-baseline gap-2">
                           <span className="text-2xl font-extrabold text-slate-900">₹{product.price.toLocaleString('en-IN')}</span>
                           {product.originalPrice && (
@@ -279,31 +279,15 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <div className="mt-6 flex gap-3">
+                    <div className="mt-4">
                       <Button 
-                        variant="outline"
-                        className="flex-1 rounded-xl h-12 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-blue-600 font-bold transition-all"
+                        className="w-full rounded-xl h-10 bg-slate-900 hover:bg-blue-600 text-white font-bold transition-all shadow-md hover:shadow-blue-500/25"
                         onClick={(e) => {
                           e.preventDefault();
-                          if (!isAuthenticated) navigate('/login');
-                          else addToCart({ id: product.id, name: product.name, price: product.price, image: product.image });
+                          navigate(`/products/${product.id}`);
                         }}
                       >
-                        <ShoppingBag className="w-4 h-4 mr-2" />
-                        Cart
-                      </Button>
-                      <Button 
-                        className="flex-1 rounded-xl h-12 bg-slate-900 hover:bg-blue-600 text-white font-bold transition-all shadow-md hover:shadow-blue-500/25"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (!isAuthenticated) navigate('/login');
-                          else {
-                            addToCart({ id: product.id, name: product.name, price: product.price, image: product.image });
-                            navigate('/cart');
-                          }
-                        }}
-                      >
-                        Buy Now
+                        Order Now
                       </Button>
                     </div>
                   </CardContent>

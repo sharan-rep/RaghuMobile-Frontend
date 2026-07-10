@@ -46,7 +46,7 @@ export default function ProductsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pt-24 pb-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">
@@ -118,85 +118,76 @@ export default function ProductsPage() {
         {/* Products Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
-            <Card key={product.id} className="group hover:shadow-xl transition-shadow">
-              <CardContent className="p-4">
-                <Link to={`/products/${product.id}`}>
-                  <div className="relative mb-4 overflow-hidden rounded-lg bg-gray-100">
+            <Card key={product.id} className="group border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col h-full rounded-xl bg-white">
+              <CardContent className="p-0 flex flex-col h-full relative">
+                {/* Image Section */}
+                <Link to={`/products/${product.id}`} className="block relative bg-white p-6 pb-2">
+                  <div className="relative h-56 w-full flex items-center justify-center">
                     <img
                       src={product.image}
                       alt={product.name}
-                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform"
+                      className="w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-300"
                     />
-                    {product.originalPrice && (
-                      <Badge className="absolute top-2 right-2 bg-red-500">
-                        {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
-                      </Badge>
-                    )}
-                    {product.condition && (
-                      <Badge variant="secondary" className="absolute top-2 left-2 bg-white text-black hover:bg-gray-100 shadow-sm border-none">
-                        {product.condition}
-                      </Badge>
-                    )}
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-600">{product.brand}</p>
-                    <h3 className="font-semibold line-clamp-2">{product.name}</h3>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm font-medium">{product.rating}</span>
-                      <span className="text-sm text-gray-600">({product.reviews})</span>
+                  {/* Badges - Top left */}
+                  <div className="absolute top-4 left-4 flex flex-col gap-2">
+                    {product.originalPrice ? (
+                      <span className="bg-[#7b1717] text-white text-xs font-semibold px-2.5 py-1 rounded-sm shadow-sm">Sale</span>
+                    ) : (product.condition === 'New' || product.condition === 'Like New') ? (
+                      <span className="bg-[#1f874c] text-white text-xs font-semibold px-2.5 py-1 rounded-sm shadow-sm">New</span>
+                    ) : null}
+                  </div>
+                </Link>
+
+                {/* Info Section */}
+                <div className="p-4 flex flex-col flex-grow">
+                  <Link to={`/products/${product.id}`} className="flex flex-col flex-grow">
+                    {/* Stock indicator */}
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className={`w-1.5 h-1.5 rounded-full ${product.inStock ? 'bg-indigo-600' : 'bg-red-500'}`}></div>
+                      <span className="text-xs font-medium text-indigo-700">
+                        {product.inStock ? `In stock ${product.stock || 0} Items` : 'Out of Stock'}
+                      </span>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-bold">₹{product.price.toLocaleString('en-IN')}</span>
+
+                    {/* Title */}
+                    <h3 className="font-medium text-gray-900 line-clamp-2 text-base leading-snug mb-2 flex-grow">
+                      {product.name}
+                    </h3>
+                    
+                    {/* Price */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[17px] font-bold text-gray-900">₹{product.price.toLocaleString('en-IN')}</span>
                       {product.originalPrice && (
-                        <span className="text-sm text-gray-500 line-through">
+                        <span className="text-sm text-gray-400 line-through font-medium">
                           ₹{product.originalPrice.toLocaleString('en-IN')}
                         </span>
                       )}
                     </div>
-                    <Badge variant={product.inStock ? 'default' : 'secondary'}>
-                      {product.inStock ? 'In Stock' : 'Out of Stock'}
-                    </Badge>
-                  </div>
-                </Link>
-                <div className="mt-4 flex gap-2">
+
+                    {/* Rating */}
+                    <div className="flex items-center gap-1 mb-2">
+                      <div className="flex gap-0.5 text-indigo-900">
+                        {[...Array(5)].map((_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`w-3.5 h-3.5 ${i < Math.round(product.rating || 0) ? 'fill-indigo-900 text-indigo-900' : 'fill-gray-200 text-gray-200'}`} 
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs text-gray-500 ml-1 font-medium">({product.reviews || 0})</span>
+                    </div>
+                  </Link>
+                  
+                  {/* Action Button */}
                   <Button
-                    className="flex-1"
+                    className="w-full bg-[#1e1b4b] hover:bg-[#312e81] text-white rounded-md h-10 font-medium transition-colors mt-2"
                     onClick={(e) => {
                       e.preventDefault();
-                      if (!isAuthenticated) {
-                        navigate('/login');
-                      } else {
-                        addToCart({
-                          id: product.id,
-                          name: product.name,
-                          price: product.price,
-                          image: product.image,
-                        });
-                      }
+                      navigate(`/products/${product.id}`);
                     }}
                   >
-                    Add Cart
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    variant="secondary"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (!isAuthenticated) {
-                        navigate('/login');
-                      } else {
-                        addToCart({
-                          id: product.id,
-                          name: product.name,
-                          price: product.price,
-                          image: product.image,
-                        });
-                        navigate('/cart');
-                      }
-                    }}
-                  >
-                    Buy Now
+                    Order Now
                   </Button>
                 </div>
               </CardContent>
