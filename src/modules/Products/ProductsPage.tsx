@@ -133,7 +133,7 @@ export default function ProductsPage() {
                   <div className="absolute top-4 left-4 flex flex-col gap-2">
                     {product.originalPrice ? (
                       <span className="bg-[#7b1717] text-white text-xs font-semibold px-2.5 py-1 rounded-sm shadow-sm">Sale</span>
-                    ) : (product.condition === 'New' || product.condition === 'Like New') ? (
+                    ) : (product.condition === 'Like New') ? (
                       <span className="bg-[#1f874c] text-white text-xs font-semibold px-2.5 py-1 rounded-sm shadow-sm">New</span>
                     ) : null}
                   </div>
@@ -146,7 +146,7 @@ export default function ProductsPage() {
                     <div className="flex items-center gap-2 mb-1.5">
                       <div className={`w-1.5 h-1.5 rounded-full ${product.inStock ? 'bg-indigo-600' : 'bg-red-500'}`}></div>
                       <span className="text-xs font-medium text-indigo-700">
-                        {product.inStock ? `In stock ${product.stock || 0} Items` : 'Out of Stock'}
+                        {product.inStock ? 'In Stock' : 'Out of Stock'}
                       </span>
                     </div>
 

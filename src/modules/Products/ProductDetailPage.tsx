@@ -28,7 +28,7 @@ export default function ProductDetailPage() {
   const { products, isLoading } = useProducts();
   const product = products.find(p => p.id === id);
   
-  const productColors = product ? (Array.isArray(product.colors) ? product.colors : (product.color ? [product.color] : [])) : [];
+  const productColors = product ? (product.colors || []) : [];
   const productStorageOptions = product ? (Array.isArray(product.storage) ? product.storage : (typeof product.storage === 'string' ? [product.storage] : (product.specifications?.storage ? [product.specifications.storage] : []))) : [];
 
   const allMedia = product ? [
@@ -294,17 +294,17 @@ export default function ProductDetailPage() {
                 <div className="flex items-center gap-3">
                   <RotateCcw className="w-5 h-5 text-blue-600" />
                   <div>
-                    <p className="font-medium">7 Days Replacement</p>
+                    <p className="font-medium">2 Days Return</p>
                     <p className="text-sm text-gray-600">Easy returns policy</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                {/* <div className="flex items-center gap-3">
                   <Shield className="w-5 h-5 text-blue-600" />
                   <div>
                     <p className="font-medium">Official Warranty</p>
                     <p className="text-sm text-gray-600">Brand warranty included</p>
                   </div>
-                </div>
+                </div> */}
               </CardContent>
             </Card>
           </div>
@@ -415,7 +415,7 @@ export default function ProductDetailPage() {
                       <div className="absolute top-4 left-4 flex flex-col gap-2">
                         {relatedProduct.originalPrice ? (
                           <span className="bg-[#7b1717] text-white text-xs font-semibold px-2.5 py-1 rounded-sm shadow-sm">Sale</span>
-                        ) : (relatedProduct.condition === 'New' || relatedProduct.condition === 'Like New') ? (
+                        ) : (relatedProduct.condition === 'Like New') ? (
                           <span className="bg-[#1f874c] text-white text-xs font-semibold px-2.5 py-1 rounded-sm shadow-sm">New</span>
                         ) : null}
                       </div>
@@ -424,7 +424,7 @@ export default function ProductDetailPage() {
                       <div className="flex items-center gap-2 mb-2.5">
                         <div className={`w-1.5 h-1.5 rounded-full ${relatedProduct.inStock ? 'bg-indigo-600' : 'bg-red-500'}`}></div>
                         <span className="text-xs font-medium text-indigo-700">
-                          {relatedProduct.inStock ? `In stock ${relatedProduct.stock || 0} Items` : 'Out of Stock'}
+                          {relatedProduct.inStock ? 'In Stock' : 'Out of Stock'}
                         </span>
                       </div>
                       <h3 className="font-medium text-gray-900 line-clamp-2 text-base leading-snug mb-2 flex-grow">

@@ -13,14 +13,14 @@ export default function LoginPage() {
   const [phone, setPhone] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'customer' | 'staff' | 'admin'>('customer');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login } = useAuth();
-  const { sendOtp, verifyOtp, login: mockCustomerLogin } = useCustomerAuth();
+  const { login, sendOtp: sendStaffOtp, verifyOtp: verifyStaffOtp } = useAuth();
+  const { sendOtp: sendCustomerOtp, verifyOtp: verifyCustomerOtp, login: mockCustomerLogin } = useCustomerAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -30,13 +30,13 @@ export default function LoginPage() {
     setSelectedRole(role);
     setOtpSent(false);
     setError('');
-    
+
     if (role === 'admin') {
       setEmail('admin@raghumobile.com');
       setPassword('admin123');
     } else if (role === 'staff') {
-      setEmail('staff@raghumobile.com');
-      setPassword('staff123');
+      setPhone('');
+      setOtpCode('');
     } else {
       setPhone('');
       setOtpCode('');
@@ -51,7 +51,10 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const success = await sendOtp(phone);
+      const success = selectedRole === 'staff'
+        ? await sendStaffOtp(phone)
+        : await sendCustomerOtp(phone);
+
       if (success) {
         setOtpSent(true);
       } else {
@@ -70,23 +73,25 @@ export default function LoginPage() {
     setLoading(true);
     try {
       let success = false;
-      if (selectedRole === 'customer') {
+      if (selectedRole === 'customer' || selectedRole === 'staff') {
         if (!otpSent) {
           await handleSendOtp();
           return;
         } else {
           // If phone is the mock phone and otp is exactly 1234, or we call the real verify
-          success = await verifyOtp(phone, otpCode);
+          success = selectedRole === 'staff'
+            ? await verifyStaffOtp(phone, otpCode, 'staff')
+            : await verifyCustomerOtp(phone, otpCode);
         }
       } else {
         success = await login(email, password, selectedRole as UserRole);
       }
-      
+
       if (success) {
         if (from) {
           navigate(from, { replace: true });
         } else {
-          navigate(selectedRole === 'customer' ? '/' : '/admin', { replace: true });
+          navigate(selectedRole === 'customer' ? '/' : (selectedRole === 'staff' ? '/staff' : '/admin'), { replace: true });
         }
       } else {
         setError('Invalid credentials.');
@@ -139,7 +144,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {selectedRole === 'customer' ? (
+          {selectedRole === 'customer' || selectedRole === 'staff' ? (
             <>
               <div>
                 <Input

@@ -12,6 +12,8 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string, role: UserRole) => Promise<boolean>;
+  sendOtp: (phone: string) => Promise<boolean>;
+  verifyOtp: (phone: string, otpCode: string, role: UserRole) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -108,6 +110,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
+  const sendOtp = async (phone: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      return res.ok;
+    } catch (err) {
+      console.error('Send OTP API error:', err);
+      // Fallback
+      return phone.length > 0;
+    }
+  };
+
+  const verifyOtp = async (phone: string, otpCode: string, role: UserRole): Promise<boolean> => {
+    const roleMap: Record<UserRole, number> = {
+      admin: 1,
+      staff: 2
+    };
+    const apiRole = roleMap[role];
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, otp_code: otpCode, role: apiRole }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.access_token && data.user) {
+          localStorage.setItem('raghu_token', data.access_token);
+          
+          const backendUser = data.user;
+          const mappedUser: User = {
+            id: backendUser._id || backendUser.id || 'staff-id',
+            name: backendUser.name || 'Staff User',
+            email: backendUser.email || `${phone}@raghumobile.com`,
+            role: role,
+          };
+
+          localStorage.setItem('raghu_user', JSON.stringify(mappedUser));
+          setUser(mappedUser);
+          return true;
+        }
+      }
+    } catch (err) {
+      console.error('Verify OTP API error, trying fallback:', err);
+    }
+
+    // Fallback
+    if (otpCode === '1234') {
+      const mockUser: User = {
+        id: `mock-${role}-id`,
+        name: 'Staff User',
+        email: `${phone}@raghumobile.com`,
+        role: role,
+      };
+      localStorage.setItem('raghu_token', `mock_token_${Date.now()}`);
+      localStorage.setItem('raghu_user', JSON.stringify(mockUser));
+      setUser(mockUser);
+      return true;
+    }
+
+    return false;
+  };
+
   const logout = () => {
     localStorage.removeItem('raghu_token');
     localStorage.removeItem('raghu_user');
@@ -115,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, sendOtp, verifyOtp, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );
