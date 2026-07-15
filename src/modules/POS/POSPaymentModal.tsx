@@ -4,13 +4,16 @@ import { Input } from '../../app/components/ui/input';
 import { IndianRupee, CreditCard, Smartphone, Split, Wallet, X } from 'lucide-react';
 
 export interface PaymentDetails {
-  method: 'Cash' | 'Card' | 'UPI' | 'EMI' | 'Split';
+  method: 'Cash' | 'Card' | 'UPI' | 'Split';
   amountPaid: number;
   splitDetails?: {
     cash: number;
     card: number;
     upi: number;
   };
+  upiProvider?: string;
+  referenceNumber?: string;
+  screenshot?: File | null;
 }
 
 interface POSPaymentModalProps {
@@ -20,8 +23,12 @@ interface POSPaymentModalProps {
 }
 
 export default function POSPaymentModal({ totalAmount, onClose, onComplete }: POSPaymentModalProps) {
-  const [method, setMethod] = useState<'Cash' | 'Card' | 'UPI' | 'EMI' | 'Split'>('Cash');
+  const [method, setMethod] = useState<'Cash' | 'Card' | 'UPI' | 'Split'>('Cash');
   const [amountPaid, setAmountPaid] = useState<string>(totalAmount.toString());
+
+  const [upiProvider, setUpiProvider] = useState<string>('Gpay');
+  const [referenceNumber, setReferenceNumber] = useState<string>('');
+  const [screenshot, setScreenshot] = useState<File | null>(null);
 
   // Split Payment states
   const [splitCash, setSplitCash] = useState<string>('');
@@ -50,14 +57,29 @@ export default function POSPaymentModal({ totalAmount, onClose, onComplete }: PO
           cash: Number(splitCash) || 0,
           card: Number(splitCard) || 0,
           upi: Number(splitUpi) || 0,
-        }
+        },
+        screenshot
       });
     } else {
       onComplete({
         method,
-        amountPaid: Number(amountPaid) || totalAmount
+        amountPaid: Number(amountPaid) || totalAmount,
+        upiProvider: method === 'UPI' ? upiProvider : undefined,
+        referenceNumber,
+        screenshot
       });
     }
+  };
+
+  const isCompleteDisabled = () => {
+    if (method === 'Split') {
+      if (splitTotal < totalAmount) return true;
+      if ((Number(splitCard) > 0 || Number(splitUpi) > 0) && !screenshot) return true;
+      return false;
+    }
+    if (method === 'UPI' && !screenshot) return true;
+    if (method === 'Card' && !screenshot) return true;
+    return false;
   };
 
   return (
@@ -79,7 +101,7 @@ export default function POSPaymentModal({ totalAmount, onClose, onComplete }: PO
           <div className="space-y-5">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">Payment Method</label>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <Button
                   variant={method === 'Cash' ? 'default' : 'outline'}
                   className="flex flex-col items-center h-auto py-3 gap-1 px-1"
@@ -103,14 +125,6 @@ export default function POSPaymentModal({ totalAmount, onClose, onComplete }: PO
                 >
                   <CreditCard className="w-5 h-5" />
                   <span className="text-xs">Card</span>
-                </Button>
-                <Button
-                  variant={method === 'EMI' ? 'default' : 'outline'}
-                  className="flex flex-col items-center h-auto py-3 gap-1 px-1"
-                  onClick={() => setMethod('EMI')}
-                >
-                  <Wallet className="w-5 h-5" />
-                  <span className="text-xs">EMI</span>
                 </Button>
                 <Button
                   variant={method === 'Split' ? 'default' : 'outline'}
@@ -188,12 +202,77 @@ export default function POSPaymentModal({ totalAmount, onClose, onComplete }: PO
                 {splitTotal > totalAmount && (
                   <p className="text-xs text-blue-600 text-right">Change: ₹{(splitTotal - totalAmount).toLocaleString('en-IN')}</p>
                 )}
+
+                {(Number(splitCard) > 0 || Number(splitUpi) > 0) && (
+                  <div className="pt-2 border-t mt-3">
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">Payment Screenshot * (For UPI/Card)</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
+                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                  </div>
+                )}
               </div>
             )}
             
-            {(method === 'UPI' || method === 'Card' || method === 'EMI') && (
-              <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 text-center">
-                <p className="text-sm text-blue-800">Process {method} payment on your terminal, then click Complete.</p>
+            {method === 'UPI' && (
+              <div className="bg-gray-50 p-4 rounded-lg border space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">UPI Provider</label>
+                  <select 
+                    value={upiProvider} 
+                    onChange={(e) => setUpiProvider(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+                  >
+                    <option value="Gpay">Gpay</option>
+                    <option value="PhonePe">PhonePe</option>
+                    <option value="Paytm">Paytm</option>
+                    <option value="Amazon Pay">Amazon Pay</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Reference Number (Optional)</label>
+                  <Input
+                    placeholder="Enter Ref/Transaction ID"
+                    value={referenceNumber}
+                    onChange={(e) => setReferenceNumber(e.target.value)}
+                    className="bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Payment Screenshot *</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                </div>
+              </div>
+            )}
+
+            {method === 'Card' && (
+              <div className="bg-gray-50 p-4 rounded-lg border space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Reference Number (Optional)</label>
+                  <Input
+                    placeholder="Enter Approval Code / Ref No"
+                    value={referenceNumber}
+                    onChange={(e) => setReferenceNumber(e.target.value)}
+                    className="bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Payment Screenshot *</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -204,7 +283,7 @@ export default function POSPaymentModal({ totalAmount, onClose, onComplete }: PO
           <Button 
             className="flex-1" 
             onClick={handleComplete}
-            disabled={method === 'Split' && splitTotal < totalAmount}
+            disabled={isCompleteDisabled()}
           >
             Complete Payment
           </Button>

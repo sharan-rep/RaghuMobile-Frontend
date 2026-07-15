@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { applyLeave, getAllLeaves, getStaffLeaves, updateLeaveStatus as updateLeaveStatusApi } from '../../modules/Staff/Service/LeaveApi';
 
 export interface Staff {
   id: string;
@@ -13,13 +14,16 @@ export interface Staff {
 
 export interface LeaveRequest {
   id: string;
-  staffId: string;
-  staffName: string;
+  staff_id: string;
   startDate: string;
   endDate: string;
   reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  appliedDate: string;
+  status: 'pending' | 'approved' | 'rejected' | string;
+  created_at: string;
+  // Fallbacks for UI mapping if needed
+  staffId?: string;
+  staffName?: string;
+  appliedDate?: string;
 }
 
 export interface Order {
@@ -45,8 +49,10 @@ interface StaffContextType {
   orders: Order[];
   attendance: Attendance[];
   addStaff: (staff: Staff) => void;
-  addLeaveRequest: (request: LeaveRequest) => void;
-  updateLeaveStatus: (id: string, status: 'approved' | 'rejected') => void;
+  addLeaveRequest: (request: Omit<LeaveRequest, 'id' | 'created_at' | 'status'>) => Promise<void>;
+  updateLeaveStatus: (id: string, status: string) => Promise<void>;
+  fetchAllLeaves: () => Promise<void>;
+  fetchStaffLeaves: (staffId: string) => Promise<void>;
   updateOrderStatus: (id: string, status: 'pending' | 'shipped' | 'delivered' | 'cancelled') => void;
   addAttendance: (att: Attendance) => void;
 }
@@ -69,15 +75,84 @@ export function StaffProvider({ children }: { children: ReactNode }) {
     setStaff((prev) => [...prev, newStaff]);
   };
 
-  const addLeaveRequest = (request: LeaveRequest) => {
-    setLeaveRequests((prev) => [...prev, request]);
+  const addLeaveRequest = async (request: Omit<LeaveRequest, 'id' | 'created_at' | 'status'>) => {
+    try {
+      const response = await applyLeave({
+        start_date: request.startDate,
+        end_date: request.endDate,
+        reason: request.reason,
+        staff_id: request.staff_id || request.staffId || '',
+      });
+      // Ensure local state uses the new response structure
+      const newLeave: LeaveRequest = {
+        id: response.id,
+        staff_id: response.staff_id,
+        startDate: response.start_date,
+        endDate: response.end_date,
+        reason: response.reason,
+        status: response.status?.toLowerCase() || 'pending',
+        created_at: response.created_at,
+        staffId: response.staff_id,
+        appliedDate: response.created_at
+      };
+      setLeaveRequests((prev) => [...prev, newLeave]);
+    } catch (error) {
+      console.error('Failed to apply leave:', error);
+      throw error;
+    }
   };
 
-  const updateLeaveStatus = (id: string, status: 'approved' | 'rejected') => {
-    setLeaveRequests((prev) =>
-      prev.map((req) => (req.id === id ? { ...req, status } : req))
-    );
+  const updateLeaveStatus = async (id: string, status: string) => {
+    try {
+      const response = await updateLeaveStatusApi(id, status);
+      setLeaveRequests((prev) =>
+        prev.map((req) => (req.id === id ? { ...req, status: response.status?.toLowerCase() || 'pending' } : req))
+      );
+    } catch (error) {
+      console.error('Failed to update leave status:', error);
+      throw error;
+    }
   };
+
+  const fetchAllLeaves = useCallback(async () => {
+    try {
+      const data = await getAllLeaves();
+      const formattedData = data.map(item => ({
+        id: item.id,
+        staff_id: item.staff_id,
+        startDate: item.start_date,
+        endDate: item.end_date,
+        reason: item.reason,
+        status: item.status?.toLowerCase() || 'pending',
+        created_at: item.created_at,
+        staffId: item.staff_id,
+        appliedDate: item.created_at
+      }));
+      setLeaveRequests(formattedData);
+    } catch (error) {
+      console.error('Failed to fetch all leaves:', error);
+    }
+  }, []);
+
+  const fetchStaffLeaves = useCallback(async (staffId: string) => {
+    try {
+      const data = await getStaffLeaves(staffId);
+      const formattedData = data.map(item => ({
+        id: item.id,
+        staff_id: item.staff_id,
+        startDate: item.start_date,
+        endDate: item.end_date,
+        reason: item.reason,
+        status: item.status?.toLowerCase() || 'pending',
+        created_at: item.created_at,
+        staffId: item.staff_id,
+        appliedDate: item.created_at
+      }));
+      setLeaveRequests(formattedData);
+    } catch (error) {
+      console.error('Failed to fetch staff leaves:', error);
+    }
+  }, []);
 
   const updateOrderStatus = (id: string, status: 'pending' | 'shipped' | 'delivered' | 'cancelled') => {
     setOrders((prev) =>
@@ -99,6 +174,8 @@ export function StaffProvider({ children }: { children: ReactNode }) {
         addStaff,
         addLeaveRequest,
         updateLeaveStatus,
+        fetchAllLeaves,
+        fetchStaffLeaves,
         updateOrderStatus,
         addAttendance,
       }}

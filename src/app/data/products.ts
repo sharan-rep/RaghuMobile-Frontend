@@ -11,6 +11,7 @@ export interface Product {
   inStock: boolean;
   description: string;
   condition?: 'Like New' | 'Good' | 'Fair';
+  imei?: string;
   specifications: {
     display?: string;
     processor?: string;

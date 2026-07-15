@@ -131,10 +131,10 @@ export default function POSPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#f3f4f6] font-sans">
-      <div className="print:hidden flex flex-col h-full">
+    <div className="flex flex-col min-h-screen bg-[#f3f4f6] font-sans">
+      <div className="print:hidden flex flex-col min-h-screen">
         {/* Header */}
-        <div className="flex items-center justify-between bg-white px-4 py-3 border-b shadow-sm z-10 shrink-0">
+        <div className="sticky top-0 flex items-center justify-between bg-white px-4 py-3 border-b shadow-sm z-50 shrink-0">
           <div className="flex items-center gap-4 w-1/4">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-gray-600">
               <ArrowLeft className="w-5 h-5" />
@@ -163,10 +163,10 @@ export default function POSPage() {
         </div>
 
         {/* Main Content */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 items-stretch">
           {/* Left Panel: Products */}
-          <div className="w-2/3 flex flex-col h-full">
-            <ScrollArea className="flex-1 p-4 bg-gray-50">
+          <div className="w-2/3 flex flex-col">
+            <div className="flex-1 p-4 bg-gray-50">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20">
                 {filteredProducts.map(product => (
                   <Card
@@ -186,19 +186,22 @@ export default function POSPage() {
                       <h3 className="font-semibold text-sm text-gray-900 line-clamp-1 mb-2">
                         {product.name}
                       </h3>
-                      <div className="flex items-center justify-between mt-auto">
+                      <div className="flex items-center justify-between mt-auto mb-1">
                         <span className="font-bold text-blue-600">₹{product.price.toLocaleString('en-IN')}</span>
                         <span className="text-xs text-gray-500">Stock: {product.stock}</span>
                       </div>
+                      {product.imei && (
+                        <p className="text-xs text-gray-500 font-medium text-left">IMEI: {product.imei}</p>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
           </div>
 
           {/* Right Panel: Cart */}
-          <div className="w-1/3 flex flex-col h-full bg-white shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-20">
+          <div className="w-1/3 flex flex-col bg-white shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-20">
             
             {/* Customer Info */}
             <div className="p-4 border-b border-gray-100">
@@ -220,7 +223,7 @@ export default function POSPage() {
             </div>
 
             {/* Cart Items */}
-            <ScrollArea className="flex-1">
+            <div className="flex-1">
               {cart.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4 py-20 px-8 text-center">
                   <Search className="w-10 h-10 opacity-30" />
@@ -305,7 +308,7 @@ export default function POSPage() {
                   ))}
                 </div>
               )}
-            </ScrollArea>
+            </div>
 
             {/* Totals & Actions */}
             <div className="p-4 bg-white border-t border-gray-100 shrink-0">

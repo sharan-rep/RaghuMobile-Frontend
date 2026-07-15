@@ -9,10 +9,13 @@ import { toast } from 'sonner';
 
 export default function LeaveManagementPage() {
   const { user } = useAuth();
-  const { leaveRequests, addLeaveRequest } = useStaff();
+  const { leaveRequests, addLeaveRequest, fetchStaffLeaves } = useStaff();
   const navigate = useNavigate();
 
+  const today = new Date().toISOString().split('T')[0];
+
   const [showForm, setShowForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     startDate: '',
     endDate: '',
@@ -22,28 +25,33 @@ export default function LeaveManagementPage() {
   useEffect(() => {
     if (!user || (user.role !== 'admin' && user.role !== 'staff')) {
       navigate('/');
+    } else {
+      fetchStaffLeaves(user.id);
     }
-  }, [user, navigate]);
+  }, [user, navigate, fetchStaffLeaves]);
 
   if (!user || (user.role !== 'admin' && user.role !== 'staff')) return null;
 
   const myLeaves = leaveRequests.filter(req => req.staffId === user.id);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    addLeaveRequest({
-      id: Date.now().toString(),
-      staffId: user.id,
-      staffName: user.name,
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      reason: formData.reason,
-      status: 'pending',
-      appliedDate: new Date().toISOString().split('T')[0],
-    });
-    toast.success('Leave request submitted successfully');
-    setShowForm(false);
-    setFormData({ startDate: '', endDate: '', reason: '' });
+    setIsSubmitting(true);
+    try {
+      await addLeaveRequest({
+        staff_id: user.id,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        reason: formData.reason,
+      });
+      toast.success('Leave request submitted successfully');
+      setShowForm(false);
+      setFormData({ startDate: '', endDate: '', reason: '' });
+    } catch (error) {
+      toast.error('Failed to submit leave request');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -68,6 +76,7 @@ export default function LeaveManagementPage() {
                   <input
                     type="date"
                     required
+                    min={today}
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -78,6 +87,7 @@ export default function LeaveManagementPage() {
                   <input
                     type="date"
                     required
+                    min={formData.startDate || today}
                     value={formData.endDate}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -93,7 +103,9 @@ export default function LeaveManagementPage() {
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                <Button type="submit">Submit Request</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                </Button>
               </form>
             </CardContent>
           </Card>

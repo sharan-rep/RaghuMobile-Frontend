@@ -2,10 +2,13 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 const SERVER_URL = API_BASE_URL.replace(/\/api$/, '');
 
 const getHeaders = (isFormData = false) => {
-  const token = localStorage.getItem('raghu_token') || localStorage.getItem('adminToken') || localStorage.getItem('token');
+  let token = localStorage.getItem('raghu_token') || localStorage.getItem('adminToken') || localStorage.getItem('token');
   const headers: HeadersInit = {};
 
   if (token) {
+    if (token.startsWith('"') && token.endsWith('"')) {
+      token = token.slice(1, -1);
+    }
     headers['Authorization'] = `Bearer ${token}`;
   }
 
@@ -34,6 +37,30 @@ export const formatProductImageUrls = (product: any) => {
   return p;
 };
 
+export interface ProductSpecifications {
+  ram?: string;
+  storage?: string;
+}
+
+export interface ProductPayload {
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  imei: string;
+  image?: string;
+  images?: string[];
+  video?: string;
+  brand: string;
+  category: string;
+  stock: number;
+  inStock?: boolean;
+  condition?: string;
+  storage?: string;
+  color?: string;
+  specifications?: ProductSpecifications;
+}
+
 const processResponseData = (responseData: any) => {
   if (responseData && responseData.data) {
     if (Array.isArray(responseData.data.items)) {
@@ -51,7 +78,7 @@ const processResponseData = (responseData: any) => {
   return responseData;
 };
 
-export const createProduct = async (data: any) => {
+export const createProduct = async (data: ProductPayload) => {
   const response = await fetch(`${API_BASE_URL}/products/`, {
     method: 'POST',
     headers: getHeaders(),
@@ -80,7 +107,7 @@ export const getProduct = async (productId: string) => {
   return processResponseData(await response.json());
 };
 
-export const updateProduct = async (productId: string, data: any) => {
+export const updateProduct = async (productId: string, data: ProductPayload) => {
   const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
     method: 'PUT',
     headers: getHeaders(),
@@ -118,6 +145,47 @@ export const listProducts = async (page = 1, limit = 100) => {
   if (!response.ok) {
     const errorData = await response.json();
     throw new Error(errorData.detail || 'Failed to list products');
+  }
+
+  return processResponseData(await response.json());
+};
+
+export const downloadSampleExcel = async () => {
+  const response = await fetch(`${API_BASE_URL}/products/download-sample`, {
+    method: 'GET',
+    headers: getHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to download sample excel');
+  }
+
+  // Handle blob response for file download
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'sample_products.xlsx';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+};
+
+export const bulkUploadExcel = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/products/upload-excel`, {
+    method: 'POST',
+    headers: getHeaders(true),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to upload excel file');
   }
 
   return processResponseData(await response.json());

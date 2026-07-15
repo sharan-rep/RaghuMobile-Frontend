@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../app/context/AuthContext';
 import { useStaff } from '../../app/context/StaffContext';
 import { useNavigate } from 'react-router';
@@ -6,26 +6,45 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../app/components/u
 import { Button } from '../../app/components/ui/button';
 import { Badge } from '../../app/components/ui/badge';
 import { toast } from 'sonner';
+import { listStaff } from '../Admin/Service/StaffManagementApi';
 
 export default function ApprovalManagementPage({ isEmbedded = false }: { isEmbedded?: boolean }) {
   const { user } = useAuth();
-  const { leaveRequests, updateLeaveStatus } = useStaff();
+  const { leaveRequests, updateLeaveStatus, fetchAllLeaves } = useStaff();
   const navigate = useNavigate();
+
+  const [staffMap, setStaffMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
       navigate('/');
+    } else {
+      fetchAllLeaves();
+      listStaff()
+        .then(data => {
+          const staffList = Array.isArray(data) ? data : (data.items || data.data || []);
+          const map: Record<string, string> = {};
+          staffList.forEach((s: any) => {
+            map[s.id || s._id] = s.name;
+          });
+          setStaffMap(map);
+        })
+        .catch(console.error);
     }
-  }, [user, navigate]);
+  }, [user, navigate, fetchAllLeaves]);
 
-  const handleApproval = (id: string, status: 'approved' | 'rejected') => {
-    updateLeaveStatus(id, status);
-    toast.success(`Leave ${status} successfully!`);
+  const handleApproval = async (id: string, status: 'approved' | 'rejected') => {
+    try {
+      await updateLeaveStatus(id, status);
+      toast.success(`Leave ${status} successfully!`);
+    } catch (error) {
+      toast.error(`Failed to ${status} leave request`);
+    }
   };
 
   if (!user || user.role !== 'admin') return null;
 
-  const pendingRequests = leaveRequests.filter(r => r.status === 'pending');
+  const pendingRequests = leaveRequests.filter(r => r.status?.toLowerCase() === 'pending');
 
   const content = (
     <>
@@ -44,7 +63,7 @@ export default function ApprovalManagementPage({ isEmbedded = false }: { isEmbed
                   <div key={request.id} className="border rounded-lg p-4 bg-white">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{request.staffName}</h3>
+                        <h3 className="font-semibold text-lg">{staffMap[request.staff_id] || request.staffName || `Staff ID: ${request.staff_id}`}</h3>
                         <p className="text-sm text-gray-600 mt-1">
                           <span className="font-medium">Leave Period:</span> {request.startDate} to {request.endDate}
                         </p>
@@ -98,7 +117,7 @@ export default function ApprovalManagementPage({ isEmbedded = false }: { isEmbed
                   <tbody>
                     {leaveRequests.map((request) => (
                       <tr key={request.id} className="border-b hover:bg-gray-50">
-                        <td className="p-3 font-medium">{request.staffName}</td>
+                        <td className="p-3 font-medium">{staffMap[request.staff_id] || request.staffName || request.staff_id}</td>
                         <td className="p-3">{request.startDate}</td>
                         <td className="p-3">{request.endDate}</td>
                         <td className="p-3 text-sm">{request.reason}</td>

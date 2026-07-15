@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
 import { useProducts } from '../../app/context/ProductContext';
+import { useCustomerAuth } from '../../app/context/CustomerAuthContext';
 import { Button } from '../../app/components/ui/button';
 import { Badge } from '../../app/components/ui/badge';
 import { Card, CardContent } from '../../app/components/ui/card';
@@ -25,6 +26,7 @@ import { toast } from 'sonner';
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useCustomerAuth();
   const { products, isLoading } = useProducts();
   const product = products.find(p => p.id === id);
   
@@ -453,13 +455,11 @@ export default function ProductDetailPage() {
                         className="w-full bg-[#1e1b4b] hover:bg-[#312e81] text-white rounded-md py-5 font-medium transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
-                          addToCart({
-                            id: relatedProduct.id,
-                            name: relatedProduct.name,
-                            price: relatedProduct.price,
-                            image: relatedProduct.image,
-                          });
-                          toast.success('Added to cart');
+                          if (isAuthenticated) {
+                            navigate(`/products/${relatedProduct.id}`);
+                          } else {
+                            navigate('/login');
+                          }
                         }}
                       >
                         Order Now

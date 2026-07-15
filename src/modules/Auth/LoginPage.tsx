@@ -104,24 +104,27 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f4f7fb] px-4 font-sans">
-      {/* Top Logo */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="bg-white p-2 rounded-full shadow-sm">
-          <img src={logoImage} alt="Logo" className="w-8 h-8 object-contain" />
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Raghu Mobile Wholesale</h1>
-      </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-blue-50 px-4 font-sans">
 
       {/* Login Card */}
-      <div className="bg-white rounded-[24px] shadow-sm p-8 sm:p-10 w-full max-w-[440px]">
-        <div className="text-center mb-8">
-          <h2 className="text-[28px] font-bold text-gray-900 mb-2">Welcome back</h2>
+      <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 sm:p-8 w-full max-w-[400px] relative overflow-hidden">
+        {/* Subtle top gradient accent */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+
+        <div className="text-center mb-6">
+          <div className="flex flex-col items-center justify-center gap-2 mb-4">
+            <div className="bg-gradient-to-tr from-blue-50 to-indigo-100 p-2 rounded-xl shadow-sm border border-blue-100/50">
+              <img src={logoImage} alt="Logo" className="w-8 h-8 object-contain drop-shadow-sm" />
+            </div>
+            <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 tracking-tight">Raghu Mobile Wholesale</h1>
+          </div>
+
+          <h2 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h2>
           <p className="text-gray-500 text-sm">Sign in to your shopping account</p>
         </div>
 
         {/* Role Tabs */}
-        <div className="flex p-1 bg-gray-100 rounded-xl mb-8">
+        <div className="flex p-1 bg-gray-100 rounded-xl mb-6">
           {(['customer', 'staff', 'admin'] as const).map((role) => (
             <button
               key={role}
@@ -235,7 +238,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="text-center text-[13px] text-gray-500">
+          <div className="text-center text-[15px] text-gray-500">
             Don't have an account?{' '}
             <Link to="/signup" className="text-blue-600 hover:text-blue-700 font-medium">
               Register

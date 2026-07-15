@@ -7,6 +7,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from '../components/ui/dropdown-menu';
 import { useAuth } from '../context/AuthContext';
 import { useEffect } from 'react';
@@ -95,6 +97,8 @@ export default function StaffLayout() {
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 mt-1">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <button onClick={() => { logout(); navigate('/'); }} className="flex items-center w-full cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 font-medium">
                       <LogOut className="w-4 h-4 mr-2" />

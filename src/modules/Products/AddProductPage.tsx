@@ -193,20 +193,8 @@ export default function AddProductPage() {
         storage: formData.storage,
         color: formData.color,
         specifications: {
-          display: formData.display || undefined,
-          processor: formData.processor || undefined,
           ram: formData.ram || undefined,
           storage: formData.storage || undefined,
-          camera: formData.camera || undefined,
-          battery: formData.battery || undefined,
-          type: formData.accessoryType || undefined,
-          compatibility: formData.compatibility || undefined,
-          connectivity: formData.connectivity || undefined,
-          material: formData.material || undefined,
-          powerOutput: formData.powerOutput || undefined,
-          cableLength: formData.cableLength || undefined,
-          batteryLife: formData.batteryLife || undefined,
-          noiseCancellation: formData.noiseCancellation || undefined,
         },
       };
 
@@ -224,6 +212,7 @@ export default function AddProductPage() {
       }
 
       toast.success(`Product ${editId ? 'updated' : 'added'} successfully!`);
+      navigate('/admin/products');
 
       // Reset form
       setFormData({
@@ -320,9 +309,10 @@ export default function AddProductPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">IMEI</label>
+                  <label className="text-sm font-medium">IMEI *</label>
                   <input
                     type="text"
+                    required
                     value={formData.imei}
                     onChange={(e) => setFormData({ ...formData, imei: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -487,28 +477,6 @@ export default function AddProductPage() {
                   {formData.category === 'Smart Phone' ? (
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-sm">Display</label>
-                        <input
-                          type="text"
-                          value={formData.display}
-                          onChange={(e) => setFormData({ ...formData, display: e.target.value })}
-                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder='6.7" AMOLED'
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm">Processor</label>
-                        <input
-                          type="text"
-                          value={formData.processor}
-                          onChange={(e) => setFormData({ ...formData, processor: e.target.value })}
-                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Snapdragon 8 Gen 2"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
                         <label className="text-sm">RAM</label>
                         <input
                           type="text"
@@ -527,28 +495,6 @@ export default function AddProductPage() {
                           onChange={(e) => setFormData({ ...formData, storage: e.target.value })}
                           className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder="256GB"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm">Camera</label>
-                        <input
-                          type="text"
-                          value={formData.camera}
-                          onChange={(e) => setFormData({ ...formData, camera: e.target.value })}
-                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="48MP + 12MP"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm">Battery</label>
-                        <input
-                          type="text"
-                          value={formData.battery}
-                          onChange={(e) => setFormData({ ...formData, battery: e.target.value })}
-                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="5000 mAh"
                         />
                       </div>
                     </div>

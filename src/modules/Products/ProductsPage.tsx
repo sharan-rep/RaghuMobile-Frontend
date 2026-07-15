@@ -184,7 +184,11 @@ export default function ProductsPage() {
                     className="w-full bg-[#1e1b4b] hover:bg-[#312e81] text-white rounded-md h-10 font-medium transition-colors mt-2"
                     onClick={(e) => {
                       e.preventDefault();
-                      navigate(`/products/${product.id}`);
+                      if (isAuthenticated) {
+                        navigate(`/products/${product.id}`);
+                      } else {
+                        navigate('/login');
+                      }
                     }}
                   >
                     Order Now

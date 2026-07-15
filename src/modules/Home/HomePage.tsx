@@ -284,7 +284,11 @@ export default function HomePage() {
                         className="w-full rounded-xl h-10 bg-slate-900 hover:bg-blue-600 text-white font-bold transition-all shadow-md hover:shadow-blue-500/25"
                         onClick={(e) => {
                           e.preventDefault();
-                          navigate(`/products/${product.id}`);
+                          if (isAuthenticated) {
+                            navigate(`/products/${product.id}`);
+                          } else {
+                            navigate('/login');
+                          }
                         }}
                       >
                         Order Now
