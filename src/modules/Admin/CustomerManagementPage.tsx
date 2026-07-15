@@ -6,43 +6,63 @@ import { Badge } from '../../app/components/ui/badge';
 import { Button } from '../../app/components/ui/button';
 import { Users, Mail, Phone, CalendarDays } from 'lucide-react';
 
+import { listCustomers, updateCustomerStatus } from './Service/CustomerManagementApi';
+
 interface Customer {
   id: string;
   name: string;
   email: string;
   phone: string;
-  joinDate: string;
-  totalOrders: number;
-  status: 'active' | 'inactive';
+  full_address: string;
+  is_active: boolean;
+  role: number;
+  orders_count: number;
+  created_at: string;
 }
-
-const mockCustomers: Customer[] = [
-  { id: 'C101', name: 'Raj Kumar', email: 'raj@example.com', phone: '+91 9876543210', joinDate: '2024-01-15', totalOrders: 5, status: 'active' },
-  { id: 'C102', name: 'Priya Singh', email: 'priya@example.com', phone: '+91 8765432109', joinDate: '2024-02-10', totalOrders: 2, status: 'active' },
-  { id: 'C103', name: 'Arun Raj', email: 'arun@example.com', phone: '+91 7654321098', joinDate: '2024-02-20', totalOrders: 1, status: 'active' },
-  { id: 'C104', name: 'Neha Sharma', email: 'neha@example.com', phone: '+91 6543210987', joinDate: '2023-11-05', totalOrders: 0, status: 'inactive' },
-];
 
 export default function CustomerManagementPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const [activeCustomers, setActiveCustomers] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchCustomers = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await listCustomers({ page: 1, limit: 100 });
+      if (response.status === 'success') {
+        setCustomers(response.data.items);
+        setTotalCustomers(response.data.total);
+        setActiveCustomers(response.data.active_count);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load customers');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
       navigate('/');
+    } else {
+      fetchCustomers();
     }
   }, [user, navigate]);
 
   if (!user || user.role !== 'admin') return null;
 
-  const totalCustomers = customers.length;
-  const activeCustomers = customers.filter(c => c.status === 'active').length;
-
-  const toggleCustomerStatus = (id: string) => {
-    setCustomers(customers.map(c => 
-      c.id === id ? { ...c, status: c.status === 'active' ? 'inactive' : 'active' } : c
-    ));
+  const toggleCustomerStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      await updateCustomerStatus(id, !currentStatus);
+      fetchCustomers();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update customer status');
+    }
   };
 
   return (
@@ -91,7 +111,19 @@ export default function CustomerManagementPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {customers.map((customer) => (
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-8 text-gray-500">
+                        Loading customers...
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-8 text-red-500">
+                        {error}
+                      </td>
+                    </tr>
+                  ) : customers.map((customer) => (
                     <tr key={customer.id} className="border-b hover:bg-gray-50">
                       <td className="p-3 font-medium text-gray-600">#{customer.id}</td>
                       <td className="p-3 font-semibold">{customer.name}</td>
@@ -106,33 +138,33 @@ export default function CustomerManagementPage() {
                       <td className="p-3">
                         <div className="flex items-center text-gray-600 text-sm">
                           <CalendarDays className="w-4 h-4 mr-1" />
-                          {customer.joinDate}
+                          {new Date(customer.created_at).toLocaleDateString()}
                         </div>
                       </td>
                       <td className="p-3">
                         <Badge variant="outline" className="font-semibold">
-                          {customer.totalOrders}
+                          {customer.orders_count}
                         </Badge>
                       </td>
                       <td className="p-3">
-                        <Badge variant={customer.status === 'active' ? 'default' : 'secondary'}>
-                          {customer.status}
+                        <Badge variant={customer.is_active ? 'default' : 'secondary'}>
+                          {customer.is_active ? 'Active' : 'Inactive'}
                         </Badge>
                       </td>
                       <td className="p-3">
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => toggleCustomerStatus(customer.id)}
+                          onClick={() => toggleCustomerStatus(customer.id, customer.is_active)}
                         >
-                          {customer.status === 'active' ? 'Deactivate' : 'Activate'}
+                          {customer.is_active ? 'Deactivate' : 'Activate'}
                         </Button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {customers.length === 0 && (
+              {!isLoading && !error && customers.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   No customers found.
                 </div>
