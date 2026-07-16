@@ -14,7 +14,7 @@ import WishlistPage from '../modules/Orders/WishlistPage';
 import OrderTrackingPage from '../modules/Orders/OrderTrackingPage';
 import LoginPage from '../modules/Auth/LoginPage';
 import SignupPage from '../modules/Auth/SignupPage';
-import CheckoutPage from '../modules/Orders/CheckoutPage';
+import CheckoutPage from '../modules/Checkout/CheckoutPage';
 
 import DashboardPage from '../modules/Admin/DashboardPage';
 import ProductManagementPage from '../modules/Products/ProductManagementPage';

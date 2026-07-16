@@ -9,6 +9,7 @@ export interface Product {
   rating: number;
   reviews: number;
   inStock: boolean;
+  stock?: number;
   description: string;
   condition?: 'Like New' | 'Good' | 'Fair';
   imei?: string;

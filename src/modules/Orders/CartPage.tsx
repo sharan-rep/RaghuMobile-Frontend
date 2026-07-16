@@ -10,7 +10,7 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 pt-28">
         <div className="text-center">
           <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <ShoppingBag className="w-12 h-12 text-blue-600" />
@@ -28,7 +28,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-gray-50 pt-28 pb-12">
       <div className="container mx-auto px-4">
         <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
         
@@ -113,9 +113,11 @@ export default function CartPage() {
                   <span className="font-bold text-2xl">₹{totalPrice.toLocaleString('en-IN')}</span>
                 </div>
                 
-                <Button size="lg" className="w-full text-lg">
-                  Proceed to Checkout
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                <Button size="lg" className="w-full text-lg" asChild>
+                  <Link to="/checkout" className="flex items-center justify-center">
+                    Proceed to Checkout
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Link>
                 </Button>
               </CardContent>
             </Card>

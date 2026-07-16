@@ -188,7 +188,7 @@ export default function POSPage() {
                       </h3>
                       <div className="flex items-center justify-between mt-auto mb-1">
                         <span className="font-bold text-blue-600">₹{product.price.toLocaleString('en-IN')}</span>
-                        <span className="text-xs text-gray-500">Stock: {product.stock}</span>
+                        <span className="text-xs text-gray-500">Stock: {product.stock !== undefined ? product.stock : (product.inStock ? 'Available' : 'Out of Stock')}</span>
                       </div>
                       {product.imei && (
                         <p className="text-xs text-gray-500 font-medium text-left">IMEI: {product.imei}</p>

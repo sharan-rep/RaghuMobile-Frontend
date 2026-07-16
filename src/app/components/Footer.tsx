@@ -5,12 +5,12 @@ import { Button } from './ui/button';
 
 export function Footer() {
   return (
-    <footer className="bg-slate-950 text-slate-300 mt-auto pt-20 pb-8 relative overflow-hidden">
+    <footer className="bg-slate-950 text-slate-300 mt-auto pt-10 pb-6 relative overflow-hidden">
       {/* Decorative top border */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600"></div>
 
       <div className="container mx-auto px-4 md:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
 
           {/* About / Branding */}
           <div className="lg:col-span-1">
@@ -116,7 +116,7 @@ export function Footer() {
           </div>
         </div>
 
-        <Separator className="bg-slate-800 mb-8" />
+        <Separator className="bg-slate-800 mb-6" />
 
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 font-medium">
           <p>© {new Date().getFullYear()} Raghu Mobile Wholesale. All rights reserved.</p>
