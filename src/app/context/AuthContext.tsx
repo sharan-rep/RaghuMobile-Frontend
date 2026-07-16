@@ -14,6 +14,7 @@ interface AuthContextType {
   login: (email: string, password: string, role: UserRole) => Promise<boolean>;
   sendOtp: (phone: string) => Promise<boolean>;
   verifyOtp: (phone: string, otpCode: string, role: UserRole) => Promise<boolean>;
+  loginWithUserData: (user: User, token: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -47,6 +48,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
   });
+
+  const loginWithUserData = (userData: User, token: string) => {
+    localStorage.setItem('raghu_token', token);
+    localStorage.setItem('raghu_user', JSON.stringify(userData));
+    setUser(userData);
+  };
 
   const login = async (email: string, password: string, role: UserRole): Promise<boolean> => {
     const username = email.includes('@') ? email.split('@')[0] : email;
@@ -136,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, otp_code: otpCode, role: apiRole }),
+        body: JSON.stringify({ otp_code: otpCode, role: apiRole }),
       });
 
       if (res.ok) {
@@ -162,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Fallback
-    if (otpCode === '1234') {
+    if (otpCode === '1234' || otpCode === '123456') {
       const mockUser: User = {
         id: `mock-${role}-id`,
         name: 'Staff User',
@@ -185,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, sendOtp, verifyOtp, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, sendOtp, verifyOtp, loginWithUserData, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

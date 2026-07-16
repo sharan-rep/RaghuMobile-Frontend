@@ -1,46 +1,73 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router';
-import { useAuth, UserRole } from '../../app/context/AuthContext';
+import { useAuth } from '../../app/context/AuthContext';
 import { useCustomerAuth } from '../../app/context/CustomerAuthContext';
 import { Button } from '../../app/components/ui/button';
 import { Input } from '../../app/components/ui/input';
-import { Eye, EyeOff } from 'lucide-react';
 import logoImage from '../../assets/logo.png';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
-  const [otpCode, setOtpCode] = useState('');
+  const [otpValues, setOtpValues] = useState<string[]>(Array(6).fill(''));
   const [otpSent, setOtpSent] = useState(false);
-
-  const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<'customer' | 'staff' | 'admin'>('customer');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, sendOtp: sendStaffOtp, verifyOtp: verifyStaffOtp } = useAuth();
-  const { sendOtp: sendCustomerOtp, verifyOtp: verifyCustomerOtp, login: mockCustomerLogin } = useCustomerAuth();
+  const { loginWithUserData } = useAuth();
+  const { sendOtp: sendCustomerOtp, loginWithCustomerData } = useCustomerAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   const from = (location.state as any)?.from?.pathname;
 
-  const quickLogin = (role: 'customer' | 'staff' | 'admin') => {
-    setSelectedRole(role);
-    setOtpSent(false);
-    setError('');
-
-    if (role === 'admin') {
-      setEmail('admin@raghumobile.com');
-      setPassword('admin123');
-    } else if (role === 'staff') {
-      setPhone('');
-      setOtpCode('');
-    } else {
-      setPhone('');
-      setOtpCode('');
+  useEffect(() => {
+    if (otpSent) {
+      setTimeout(() => {
+        otpRefs.current[0]?.focus();
+      }, 100);
     }
+  }, [otpSent]);
+
+  const handleOtpChange = (index: number, value: string) => {
+    // Only accept numeric inputs
+    if (value && !/^\d+$/.test(value)) return;
+
+    const newOtpValues = [...otpValues];
+    newOtpValues[index] = value.slice(-1);
+    setOtpValues(newOtpValues);
+
+    // Auto-focus next input if a digit was entered
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      if (!otpValues[index] && index > 0) {
+        // Focus the previous input and clear it
+        otpRefs.current[index - 1]?.focus();
+        const newOtpValues = [...otpValues];
+        newOtpValues[index - 1] = '';
+        setOtpValues(newOtpValues);
+      } else {
+        const newOtpValues = [...otpValues];
+        newOtpValues[index] = '';
+        setOtpValues(newOtpValues);
+      }
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').trim();
+    if (!/^\d{6}$/.test(pastedData)) return;
+
+    const digits = pastedData.split('');
+    setOtpValues(digits);
+    otpRefs.current[5]?.focus();
   };
 
   const handleSendOtp = async () => {
@@ -51,10 +78,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const success = selectedRole === 'staff'
-        ? await sendStaffOtp(phone)
-        : await sendCustomerOtp(phone);
-
+      const success = await sendCustomerOtp(phone);
       if (success) {
         setOtpSent(true);
       } else {
@@ -70,34 +94,107 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!otpSent) {
+      await handleSendOtp();
+      return;
+    }
+
+    const otpCode = otpValues.join('');
+    if (otpCode.length !== 6) {
+      setError('Please enter a 6-digit OTP.');
+      return;
+    }
+
     setLoading(true);
     try {
-      let success = false;
-      if (selectedRole === 'customer' || selectedRole === 'staff') {
-        if (!otpSent) {
-          await handleSendOtp();
-          return;
-        } else {
-          // If phone is the mock phone and otp is exactly 1234, or we call the real verify
-          success = selectedRole === 'staff'
-            ? await verifyStaffOtp(phone, otpCode, 'staff')
-            : await verifyCustomerOtp(phone, otpCode);
+      // Mock OTP validation logic
+      if (otpCode === '123456' || otpCode === '1234') {
+        let mockRole: 'customer' | 'staff' | 'admin' = 'customer';
+        if (phone.includes('admin') || phone === '9999999999') {
+          mockRole = 'admin';
+        } else if (phone.includes('staff') || phone === '8888888888') {
+          mockRole = 'staff';
         }
-      } else {
-        success = await login(email, password, selectedRole as UserRole);
+
+        if (mockRole === 'customer') {
+          const mockCustomer = {
+            id: 'mock-customer-id',
+            name: 'Customer User',
+            email: `${phone}@raghumobile.com`,
+            phone: phone,
+            address: '',
+            gender: 'Other',
+          };
+          loginWithCustomerData(mockCustomer, `mock_token_${Date.now()}`);
+          navigate('/', { replace: true });
+        } else {
+          const mockUser = {
+            id: `mock-${mockRole}-id`,
+            name: mockRole === 'admin' ? 'Admin User' : 'Staff User',
+            email: `${phone}@raghumobile.com`,
+            role: mockRole as 'admin' | 'staff',
+          };
+          loginWithUserData(mockUser, `mock_token_${Date.now()}`);
+          navigate(mockRole === 'staff' ? '/staff' : '/admin', { replace: true });
+        }
+        return;
       }
 
-      if (success) {
-        if (from) {
-          navigate(from, { replace: true });
+      // Real backend request
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      const res = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp_code: otpCode }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.access_token && data.user) {
+          const backendUser = data.user;
+          // Check role: 0 = customer, 1 = admin, 2 = staff
+          if (backendUser.role === 1 || backendUser.role === 2) {
+            const mappedRole = backendUser.role === 1 ? 'admin' : 'staff';
+            const mappedUser = {
+              id: backendUser._id || backendUser.id || 'staff-id',
+              name: backendUser.name || (mappedRole === 'admin' ? 'Admin User' : 'Staff User'),
+              email: backendUser.email || `${phone}@raghumobile.com`,
+              role: mappedRole as 'admin' | 'staff',
+            };
+            loginWithUserData(mappedUser, data.access_token);
+            if (from) {
+              navigate(from, { replace: true });
+            } else {
+              navigate(mappedRole === 'staff' ? '/staff' : '/admin', { replace: true });
+            }
+          } else {
+            // Customer
+            const mappedCustomer = {
+              id: backendUser._id || backendUser.id || 'customer-id',
+              name: backendUser.name || 'Customer User',
+              email: backendUser.email || '',
+              phone: backendUser.phone || phone,
+              address: backendUser.full_address || '',
+              gender: backendUser.gender || 'Other',
+            };
+            loginWithCustomerData(mappedCustomer, data.access_token);
+            if (from) {
+              navigate(from, { replace: true });
+            } else {
+              navigate('/', { replace: true });
+            }
+          }
         } else {
-          navigate(selectedRole === 'customer' ? '/' : (selectedRole === 'staff' ? '/staff' : '/admin'), { replace: true });
+          setError('Invalid OTP code or user session not generated.');
         }
       } else {
-        setError('Invalid credentials.');
+        const errorData = await res.json();
+        setError(errorData.detail || 'OTP verification failed.');
       }
-    } catch {
-      setError('An error occurred. Please try again.');
+    } catch (err) {
+      console.error('OTP login failed:', err);
+      setError('An error occurred during verification. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -105,7 +202,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-blue-50 px-4 font-sans">
-
       {/* Login Card */}
       <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 sm:p-8 w-full max-w-[400px] relative overflow-hidden">
         {/* Subtle top gradient accent */}
@@ -123,113 +219,60 @@ export default function LoginPage() {
           <p className="text-gray-500 text-sm">Sign in to your shopping account</p>
         </div>
 
-        {/* Role Tabs */}
-        <div className="flex p-1 bg-gray-100 rounded-xl mb-6">
-          {(['customer', 'staff', 'admin'] as const).map((role) => (
-            <button
-              key={role}
-              type="button"
-              onClick={() => quickLogin(role)}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all capitalize ${selectedRole === role
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-                }`}
-            >
-              {role}
-            </button>
-          ))}
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="text-sm text-red-500 bg-red-50 p-3 rounded-lg text-center">
+            <div className="text-sm text-red-500 bg-red-50 p-3 rounded-lg text-center font-medium">
               {error}
             </div>
           )}
 
-          {selectedRole === 'customer' || selectedRole === 'staff' ? (
-            <>
-              <div>
-                <Input
-                  type="tel"
-                  placeholder="Phone number"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  required
-                  disabled={otpSent}
-                  className="bg-gray-50 border-gray-100 text-gray-900 placeholder:text-gray-400 h-[50px] rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0 px-4"
-                />
-              </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Phone Number</label>
+            <Input
+              type="tel"
+              placeholder="Phone number"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              required
+              disabled={otpSent}
+              className="bg-gray-50 border-gray-100 text-gray-900 placeholder:text-gray-400 h-[50px] rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0 px-4 transition-all"
+            />
+          </div>
 
-              {otpSent && (
-                <div>
-                  <Input
+          {otpSent && (
+            <div className="animate-fade-in">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 text-center">
+                Enter 6-Digit OTP
+              </label>
+              <div className="flex justify-between gap-2 my-2">
+                {otpValues.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    ref={el => (otpRefs.current[idx] = el)}
                     type="text"
-                    placeholder="Enter OTP"
-                    value={otpCode}
-                    onChange={e => setOtpCode(e.target.value)}
-                    required
-                    className="bg-gray-50 border-gray-100 text-gray-900 placeholder:text-gray-400 h-[50px] rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0 px-4"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={1}
+                    value={digit}
+                    onChange={e => handleOtpChange(idx, e.target.value)}
+                    onKeyDown={e => handleOtpKeyDown(idx, e)}
+                    onPaste={idx === 0 ? handleOtpPaste : undefined}
+                    className="w-12 h-14 text-center text-xl font-bold border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none bg-gray-50 text-gray-900 transition-all shadow-sm"
                   />
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full h-[50px] bg-[#1a56db] hover:bg-blue-700 text-white rounded-xl font-medium text-[15px] transition-colors"
-              >
-                {loading ? 'Please wait...' : (otpSent ? 'Verify & Login' : 'Send OTP')}
-              </Button>
-            </>
-          ) : (
-            <>
-              <div>
-                <Input
-                  type="email"
-                  placeholder="Email address"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  className="bg-gray-50 border-gray-100 text-gray-900 placeholder:text-gray-400 h-[50px] rounded-xl focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0 px-4"
-                />
+                ))}
               </div>
-
-              <div className="relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                  className="bg-gray-50 border-gray-100 text-gray-900 placeholder:text-gray-400 h-[50px] rounded-xl pr-12 focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:ring-offset-0 px-4"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-
-              <div className="flex justify-end pt-1 pb-2">
-                <Link to="#" className="text-[13px] text-blue-600 hover:text-blue-700 font-medium">
-                  Forgot password?
-                </Link>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full h-[50px] bg-[#1a56db] hover:bg-blue-700 text-white rounded-xl font-medium text-[15px] transition-colors"
-              >
-                {loading ? 'Signing in...' : 'Sign in'}
-              </Button>
-            </>
+            </div>
           )}
 
-          <div className="relative py-6">
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full h-[50px] bg-[#1a56db] hover:bg-blue-700 text-white rounded-xl font-medium text-[15px] transition-all shadow-md hover:shadow-lg mt-4 active:scale-[0.98]"
+          >
+            {loading ? 'Please wait...' : (otpSent ? 'Verify & Login' : 'Send OTP')}
+          </Button>
+
+          <div className="relative py-4">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-100"></div>
             </div>

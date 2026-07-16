@@ -39,7 +39,7 @@ export const verifyCustomerOtp = async (phone: string, otp_code: string) => {
   const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone, otp_code, role: 0 }),
+    body: JSON.stringify({ otp_code, role: 0 }),
   });
 
   if (!response.ok) {

@@ -16,6 +16,7 @@ interface CustomerAuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   sendOtp: (phone: string) => Promise<boolean>;
   verifyOtp: (phone: string, otpCode: string) => Promise<boolean>;
+  loginWithCustomerData: (customer: Customer, token: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -35,6 +36,12 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
   });
+
+  const loginWithCustomerData = (customerData: Customer, token: string) => {
+    localStorage.setItem('raghu_token', token);
+    localStorage.setItem(SESSION_KEY, JSON.stringify(customerData));
+    setCustomer(customerData);
+  };
 
   const getCustomers = (): Array<Customer & { password: string }> => {
     try {
@@ -141,7 +148,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <CustomerAuthContext.Provider value={{ customer, register, login, sendOtp, verifyOtp, logout, isAuthenticated: !!customer }}>
+    <CustomerAuthContext.Provider value={{ customer, register, login, sendOtp, verifyOtp, loginWithCustomerData, logout, isAuthenticated: !!customer }}>
       {children}
     </CustomerAuthContext.Provider>
   );
