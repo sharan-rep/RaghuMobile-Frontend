@@ -24,7 +24,17 @@ import {
   CreditCard
 } from 'lucide-react';
 
-const dummyAddresses = [
+interface Address {
+  id: string;
+  type: string;
+  name: string;
+  isDefault: boolean;
+  phone: string;
+  addressLine1: string;
+  addressLine2: string;
+}
+
+const initialAddresses: Address[] = [
   {
     id: '1',
     type: 'Home',
@@ -46,11 +56,66 @@ const dummyAddresses = [
 ];
 
 export default function CheckoutPage() {
+  const [addresses, setAddresses] = useState<Address[]>(initialAddresses);
   const [selectedAddress, setSelectedAddress] = useState<string>('1');
   const [step, setStep] = useState<number>(1);
   const [showRazorpay, setShowRazorpay] = useState<boolean>(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'success' | 'failed'>('idle');
   const { items, totalPrice } = useCart();
+
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    type: 'Home',
+    name: '',
+    phone: '',
+    addressLine1: '',
+    addressLine2: '',
+    isDefault: false
+  });
+
+  const handleOpenAddressForm = (address?: Address) => {
+    if (address) {
+      setEditingAddressId(address.id);
+      setFormData({
+        type: address.type,
+        name: address.name,
+        phone: address.phone,
+        addressLine1: address.addressLine1,
+        addressLine2: address.addressLine2,
+        isDefault: address.isDefault
+      });
+    } else {
+      setEditingAddressId(null);
+      setFormData({
+        type: 'Home',
+        name: '',
+        phone: '',
+        addressLine1: '',
+        addressLine2: '',
+        isDefault: false
+      });
+    }
+    setShowAddressForm(true);
+  };
+
+  const handleSaveAddress = () => {
+    if (editingAddressId) {
+      setAddresses(prev => prev.map(a => a.id === editingAddressId ? { ...formData, id: editingAddressId } : a));
+    } else {
+      const newAddress = { ...formData, id: Date.now().toString() };
+      setAddresses(prev => [...prev, newAddress]);
+      setSelectedAddress(newAddress.id);
+    }
+    setShowAddressForm(false);
+  };
+
+  const handleRemoveAddress = (id: string) => {
+    setAddresses(prev => prev.filter(a => a.id !== id));
+    if (selectedAddress === id) {
+      setSelectedAddress(addresses.find(a => a.id !== id)?.id || '');
+    }
+  };
 
   const handlePaymentSuccess = () => {
     setPaymentStatus('success');
@@ -121,7 +186,7 @@ export default function CheckoutPage() {
                   </div>
 
                   <RadioGroup value={selectedAddress} onValueChange={setSelectedAddress} className="space-y-4">
-                    {dummyAddresses.map((addr) => {
+                    {addresses.map((addr) => {
                       const isSelected = selectedAddress === addr.id;
                       return (
                         <div 
@@ -154,10 +219,16 @@ export default function CheckoutPage() {
                             </div>
                             
                             <div className="flex sm:flex-col justify-end gap-3 sm:gap-2 mt-2 sm:mt-0">
-                              <button className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-700">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleOpenAddressForm(addr); }}
+                                className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 z-10 relative"
+                              >
                                 <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
                               </button>
-                              <button className="flex items-center text-sm font-medium text-red-500 hover:text-red-600">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleRemoveAddress(addr.id); }}
+                                className="flex items-center text-sm font-medium text-red-500 hover:text-red-600 z-10 relative"
+                              >
                                 <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Remove
                               </button>
                             </div>
@@ -167,7 +238,10 @@ export default function CheckoutPage() {
                     })}
                   </RadioGroup>
 
-                  <button className="w-full mt-6 py-4 border-2 border-dashed border-gray-300 rounded-xl text-blue-600 font-semibold flex items-center justify-center hover:bg-blue-50/50 hover:border-blue-300 transition-colors bg-white">
+                  <button 
+                    onClick={() => handleOpenAddressForm()}
+                    className="w-full mt-6 py-4 border-2 border-dashed border-gray-300 rounded-xl text-blue-600 font-semibold flex items-center justify-center hover:bg-blue-50/50 hover:border-blue-300 transition-colors bg-white"
+                  >
                     <Plus className="w-5 h-5 mr-2" /> Add New Address
                   </button>
                 </Card>
@@ -184,9 +258,35 @@ export default function CheckoutPage() {
             {/* STEP 2: Review Order */}
             {step === 2 && (
               <>
+                <Card className="border-0 shadow-none bg-[#fafafa] rounded-xl p-6 mb-6">
+                  <div className="mb-4 flex justify-between items-start">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">Delivery Address</h2>
+                      <p className="text-sm text-gray-500 mt-1">Your order will be shipped here</p>
+                    </div>
+                    <button onClick={() => setStep(1)} className="text-sm font-medium text-blue-600 hover:text-blue-700">Change</button>
+                  </div>
+                  {(() => {
+                    const addr = addresses.find(a => a.id === selectedAddress);
+                    if (!addr) return null;
+                    return (
+                      <div className="bg-white p-4 rounded-xl border border-gray-200 flex items-start gap-4">
+                        <div className="flex flex-col items-center justify-center w-12 h-12 rounded-lg bg-blue-50 text-blue-600 flex-shrink-0">
+                          {addr.type === 'Home' ? <Home className="w-5 h-5 mb-0.5" /> : <Briefcase className="w-5 h-5 mb-0.5" />}
+                          <span className="text-[9px] font-bold uppercase">{addr.type}</span>
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900 mb-0.5">{addr.name} <span className="text-sm font-normal text-gray-500 ml-2">{addr.phone}</span></p>
+                          <p className="text-sm text-gray-600">{addr.addressLine1}, {addr.addressLine2}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </Card>
+
                 <Card className="border-0 shadow-none bg-[#fafafa] rounded-xl p-6">
                   <div className="mb-6">
-                    <h2 className="text-xl font-bold text-gray-900">Review Order</h2>
+                    <h2 className="text-xl font-bold text-gray-900">Review Items</h2>
                     <p className="text-sm text-gray-500 mt-1">Please check your items before making payment</p>
                   </div>
                   
@@ -398,6 +498,56 @@ export default function CheckoutPage() {
               
               <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-center text-xs text-gray-400 gap-1">
                 <ShieldCheck className="w-4 h-4" /> Secured by Razorpay
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Address Form Modal Overlay */}
+      {showAddressForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+            <div className="bg-[#0b1b36] p-4 text-white flex justify-between items-center">
+              <h3 className="font-semibold">{editingAddressId ? 'Edit Address' : 'Add New Address'}</h3>
+              <button onClick={() => setShowAddressForm(false)} className="text-gray-300 hover:text-white transition-colors">
+                <XCircle className="w-5 h-5"/>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex gap-4 mb-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="type" value="Home" checked={formData.type === 'Home'} onChange={(e) => setFormData({...formData, type: e.target.value})} className="accent-blue-600" />
+                  <span className="text-sm font-medium">Home</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="type" value="Work" checked={formData.type === 'Work'} onChange={(e) => setFormData({...formData, type: e.target.value})} className="accent-blue-600" />
+                  <span className="text-sm font-medium">Work</span>
+                </label>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name</label>
+                <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Enter your name" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number</label>
+                <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="+91 9876543210" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Address Line 1</label>
+                <input type="text" value={formData.addressLine1} onChange={e => setFormData({...formData, addressLine1: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Flat, House no., Building, Company, Apartment" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Address Line 2</label>
+                <input type="text" value={formData.addressLine2} onChange={e => setFormData({...formData, addressLine2: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Area, Street, Sector, Village" />
+              </div>
+              <div className="flex items-center gap-2 pt-2">
+                <input type="checkbox" id="isDefault" checked={formData.isDefault} onChange={e => setFormData({...formData, isDefault: e.target.checked})} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" />
+                <label htmlFor="isDefault" className="text-sm font-medium text-gray-700 cursor-pointer">Make this my default address</label>
+              </div>
+              <div className="pt-4 flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setShowAddressForm(false)}>Cancel</Button>
+                <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={handleSaveAddress}>Save Address</Button>
               </div>
             </div>
           </div>

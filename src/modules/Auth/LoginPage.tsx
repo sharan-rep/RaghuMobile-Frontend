@@ -190,6 +190,13 @@ export default function LoginPage() {
         }
       } else {
         const errorData = await res.json();
+        if (res.status === 404) {
+          setError('User not registered. Redirecting to sign up...');
+          setTimeout(() => {
+            navigate('/signup');
+          }, 1500);
+          return;
+        }
         setError(errorData.detail || 'OTP verification failed.');
       }
     } catch (err) {

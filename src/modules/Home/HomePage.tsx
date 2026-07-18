@@ -221,67 +221,70 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
               >
-                <Card className="group border-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] transition-all duration-500 bg-white rounded-[24px] overflow-hidden flex flex-col h-full relative">
-                  {/* Image Container */}
-                  <Link to={`/products/${product.id}`} className="block relative bg-[#F8FAFC] pt-8 pb-6 px-6 overflow-hidden">
-                    <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-                      {product.originalPrice && (
-                        <Badge className="bg-red-500 text-white border-none px-3 py-1 text-xs font-bold shadow-sm rounded-full">
-                          Sale
-                        </Badge>
-                      )}
-                      {product.inStock && (
-                        <Badge className="bg-emerald-500 text-white border-none px-3 py-1 text-xs font-bold shadow-sm rounded-full">
-                          In Stock
-                        </Badge>
-                      )}
-                    </div>
-                    <motion.img
-                      whileHover={{ scale: 1.08 }}
-                      transition={{ duration: 0.6, ease: "easeOut" }}
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-56 object-contain mix-blend-multiply filter contrast-105"
-                    />
-                  </Link>
-
-                  {/* Content Container */}
-                  <CardContent className="p-4 flex flex-col flex-grow bg-white">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="flex items-center">
-                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                <Card className="group border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col h-full rounded-xl bg-white">
+                  <CardContent className="p-0 flex flex-col h-full relative">
+                    {/* Image Section */}
+                    <Link to={`/products/${product.id}`} className="block relative bg-white p-6 pb-2">
+                      <div className="relative h-56 w-full flex items-center justify-center">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-300"
+                        />
                       </div>
-                      <span className="text-xs font-semibold text-slate-400">({product.reviews})</span>
-                    </div>
-                    
-                    <p className="text-xs font-bold tracking-wider text-blue-600 uppercase mb-2">{product.brand}</p>
-                    <Link to={`/products/${product.id}`} className="group-hover:text-blue-600 transition-colors">
-                      <h3 className="font-bold text-lg text-slate-900 leading-tight mb-4 line-clamp-2">
-                        {product.name}
-                      </h3>
+                      {/* Badges - Top left */}
+                      <div className="absolute top-4 left-4 flex flex-col gap-2">
+                        {product.originalPrice ? (
+                          <span className="bg-[#7b1717] text-white text-xs font-semibold px-2.5 py-1 rounded-sm shadow-sm">Sale</span>
+                        ) : (product.condition === 'Like New') ? (
+                          <span className="bg-[#1f874c] text-white text-xs font-semibold px-2.5 py-1 rounded-sm shadow-sm">New</span>
+                        ) : null}
+                      </div>
                     </Link>
-                    
-                    <div className="mt-auto pt-3 flex items-end justify-between border-t border-slate-100">
-                      <div className="flex flex-col">
-                        <span className="text-xs text-slate-500 font-medium mb-0.5">Price</span>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-2xl font-extrabold text-slate-900">₹{product.price.toLocaleString('en-IN')}</span>
+
+                    {/* Info Section */}
+                    <div className="p-4 flex flex-col flex-grow">
+                      <Link to={`/products/${product.id}`} className="flex flex-col flex-grow">
+                        {/* Stock indicator */}
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <div className={`w-1.5 h-1.5 rounded-full ${product.inStock ? 'bg-indigo-600' : 'bg-red-500'}`}></div>
+                          <span className="text-xs font-medium text-indigo-700">
+                            {product.inStock ? 'In Stock' : 'Out of Stock'}
+                          </span>
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="font-medium text-gray-900 line-clamp-2 text-base leading-snug mb-2 flex-grow">
+                          {product.name}
+                        </h3>
+                        
+                        {/* Price */}
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-[17px] font-bold text-gray-900">₹{product.price.toLocaleString('en-IN')}</span>
                           {product.originalPrice && (
-                            <span className="text-sm text-slate-400 line-through font-medium">
+                            <span className="text-sm text-gray-400 line-through font-medium">
                               ₹{product.originalPrice.toLocaleString('en-IN')}
                             </span>
                           )}
                         </div>
-                      </div>
-                    </div>
 
-                    <div className="mt-4">
-                      <Button 
-                        className="w-full rounded-xl h-10 bg-slate-900 hover:bg-blue-600 text-white font-bold transition-all shadow-md hover:shadow-blue-500/25"
+                        {/* Rating */}
+                        <div className="flex items-center gap-1 mb-2">
+                          <div className="flex gap-0.5 text-indigo-900">
+                            {[...Array(5)].map((_, i) => (
+                              <Star 
+                                key={i} 
+                                className={`w-3.5 h-3.5 ${i < Math.round(product.rating || 0) ? 'fill-indigo-900 text-indigo-900' : 'fill-gray-200 text-gray-200'}`} 
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs text-gray-500 ml-1 font-medium">({product.reviews || 0})</span>
+                        </div>
+                      </Link>
+                      
+                      {/* Action Button */}
+                      <Button
+                        className="w-full bg-[#1e1b4b] hover:bg-[#312e81] text-white rounded-md h-10 font-medium transition-colors mt-2"
                         onClick={(e) => {
                           e.preventDefault();
                           if (isAuthenticated) {
